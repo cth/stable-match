@@ -1,0 +1,29 @@
+What experiments to include:
+
+- Matching sum of distances
+- Matching longest distance
+- Matching mean/median distance
+
+What can be varied: 
+- Number of cases
+- case/control ratio
+- Control selection pool size 
+- number features to match on
+
+-- What can improve the tool/paper:
+
+- Vizualization of matching in graph layout (assumming there is an relevant R package) 
+
+- Various calculations:
+	- number of possible matchings (i.e., binomial)
+	- (log) Probability of finding an equally good/better matching with regards to different metrics 
+
+It would be cool to measure how much signal there is after selecting controls, 
+i.e., do an association analysis simulation. 
+
+For instance, we may create data such that cases have higher xyz trait level than controls,
+but that it also varies with feature matched confounder variables.
+
+How to generate such data from R is probably going to be complex.
+
+This indicates that the data can be 
