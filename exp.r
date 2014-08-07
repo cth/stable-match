@@ -7,9 +7,6 @@ sample.case.control.pop <- function(nfeatures,ncases,ncontrols) {
 
 	for(i in 1:nfeatures)
 		sample.pop[[i]] = rnorm(ncases + ncontrols) 
-#		sample.pop[[i]] = rnorm(ncases + ncontrols, 
-#								mean=sample(0:nfeatures,1),
-#								sd=sample(1:nfeatures,1))
 
 	list(
 		 cases = sample.pop[1:ncases,],
@@ -17,106 +14,61 @@ sample.case.control.pop <- function(nfeatures,ncases,ncontrols) {
 		 match.features = names(sample.pop)[2:nfeatures]
 	)
 }
+measurements <- c("longest.distance", "mean.distance","median.distance", "sd.distance")
 
-times.gsa <- c()
-times.lp <- c()
-longest.gsa <- c()
-longest.lp <- c()
-mean.gsa <- c()
-mean.lp <- c()
-median.gsa <- c()
-median.lp <- c()
-measure.points <- c()
+runs <- list() 
+num.experiments <- 5 
 
-results <- list()
-results$gsa <- list()
-results$lpsolve <- list()
+for(i in 1:num.experiments) {
+	results <- list()
+	results$gsa <- list()
+	results$lpsolve <- list()
+	results$measure.points <- c()
 
-for(ncases in seq(2,20,2)) {
-	measure.points <- c(measure.points,ncases)
-	for(algo in c("gsa", "lpsolve")) {
-		pop <- sample.case.control.pop(3,ncases,20) 
+	for(ncases in seq(5,50,5)) {
+		results$measure.points <- c(results$measure.points,ncases)
+		for(algo in c("gsa", "lpsolve")) {
+			pop <- sample.case.control.pop(2,ncases,50) 
 
-		match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.algorithm=algo)
+			match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.algorithm=algo)
 
-		
-		if (is.null(results[[algo]]$times)
-			results[[algo]]$times <- c()
-		else
-			results[[algo]]$times <- c( results[[algo]]$times, match$test.metrics$elapsed.time[3]))
-
-		if (is.null(results[[algo]]$longest)
-			results[[algo]]$longest <- c()
-		else
-			results[[algo]]$longest <- c( results[[algo]]$longest, match$test.metrics$longest.distance))
-
-		if (is.null(results[[algo]]$mean)
-			results[[algo]]$mean <- c()
-		else
-			results[[algo]]$mean <- c( results[[algo]]$median, match$test.metrics$mean.distance))
-
-		if (is.null(results[[algo]]$median)
-			results[[algo]]$median <- c()
-		else
-			results[[algo]]$median <- c( results[[algo]]$median, match$test.metrics$median.distance))
-
-
-			
-		results[[algo]]$times <- 
-		times.gsa = c(times.gsa, match.gsa$test.metrics$elapsed.time[3])
-
-		match.gsa <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.algorithm="gsa")
-		times.gsa = c(times.gsa, match.gsa$test.metrics$elapsed.time[3])
-		longest.gsa = c(longest.gsa, match.gsa$test.metrics$max.distance)
-		mean.gsa = c(mean.gsa, match.gsa$test.metrics$mean.distance)
-		median.gsa = c(median.gsa, match.gsa$test.metrics$median.distance) 
-
-		match.lp <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.algorithm="lpsolve")
-		times.lp = c(times.lp, match.lp$test.metrics$elapsed.time[3])
-		longest.lp = c(longest.lp, match.lp$test.metrics$max.distance)
-		mean.lp = c(mean.lp, match.lp$test.metrics$mean.distance)
-		median.lp = c(median.lp, match.lp$test.metrics$median.distance) 
+			for(m in measurements) 
+				results[[algo]][[m]] <- c( results[[algo]][[m]], match$test.metrics[[m]])
+		}
 	}
+	runs[[length(runs)+1]] <- results
 }
 
-plot.measurement <- function(name, gsa, lp, y.points) {
-	print(paste("plot", name))
-
-	min.x <- min(c(gsa,lp))
-	max.x <- max(c(gsa,lp))
-	print(min.x)
-	print(max.x)
+plot.measurement <- function(name, gsa, lp, measure.points,ylab="") {
 	pdf(paste0(name,".pdf"))
-	plot(gsa, y.points, ylim=c(min.x,max.x),col="blue",type="b") 
-	lines(lp,y.points,col="red")
+	plot(measure.points, gsa, ylim=range(gsa,lp),col="blue",type="b",main=name, xlab="#cases",ylab=ylab) 
+	lines(measure.points,lp,col="red",t="b")
 	legend("topleft", c("gsa", "lp"), col=c("blue", "red"), pch=21)
 	dev.off()
 }
 
-print(measure.points)
+matplot.measurement <- function(name, gsa, lp, measure.points,ylab="") {
+	pdf(paste0("mat.", name,".pdf"))
+	print(dim(rbind(gsa,lp)))
+	color=c(rep("blue",nrow(gsa)),rep("red", nrow(lp)))
+	matplot(measure.points, t(rbind(gsa,lp)), ylim=range(gsa,lp),col=color,type="b",main=name, xlab="#cases",ylab=ylab) 
+	legend("topleft", c("gsa", "lp"), col=c("blue", "red"), pch=21)
+	dev.off()
+}
 
-plot.measurement("times", times.gsa,times.lp,measure.points)
-plot.measurement("longest", times.gsa,times.lp,measure.points)
-#plot("longest", longest.gsa,times.lp)
-#plot("mean", mean.gsa,times.lp)
-#plot("median", median.gsa,times.lp)
 
-#pdf("times.pdf")
-#plot(times.gsa,col="blue", type="l")
-#lines(times.lp,col="red")
-#dev.off()
-#
-#pdf("longest.pdf")
-#plot(longest.gsa,col="blue", type="l")
-#lines(longest.lp,col="red")
-#dev.off()
-#
-#pdf("mean.pdf")
-#plot(mean.gsa,col="blue", type="l")
-#lines(mean.lp,col="red")
-#dev.off()
-#
-#pdf("median.pdf")
-#plot(median.gsa,col="blue", type="l")
-#lines(median.lp,col="red")
-#dev.off()
+#print(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] }))
+#tmp <- matrix(unlist(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] })),length(runs),byrow=T)
+#print("----------------------")
+#print(tmp)
+#means <- apply(tmp,2,mean)
+
+
+for(m in measurements) {
+	gsa <- matrix(unlist(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] })),length(runs),byrow=T)
+	lp <- matrix(unlist(lapply(runs, function(run) { run[["lpsolve"]][["longest.distance"]] })),length(runs),byrow=T)
+	gsa.means <- apply(gsa,2,mean)
+	lp.means <- apply(lp,2,mean)
+	plot.measurement(m, gsa.means, lp.means,results$measure.points)
+	matplot.measurement(m, gsa, lp,results$measure.points)
+}
