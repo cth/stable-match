@@ -57,13 +57,6 @@ matplot.measurement <- function(name, gsa, lp, measure.points,ylab="") {
 }
 
 
-#print(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] }))
-#tmp <- matrix(unlist(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] })),length(runs),byrow=T)
-#print("----------------------")
-#print(tmp)
-#means <- apply(tmp,2,mean)
-
-
 for(m in measurements) {
 	gsa <- matrix(unlist(lapply(runs, function(run) { run[["gsa"]][["longest.distance"]] })),length(runs),byrow=T)
 	lp <- matrix(unlist(lapply(runs, function(run) { run[["lpsolve"]][["longest.distance"]] })),length(runs),byrow=T)

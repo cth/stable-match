@@ -27,3 +27,24 @@ but that it also varies with feature matched confounder variables.
 How to generate such data from R is probably going to be complex.
 
 This indicates that the data can be 
+
+Improvement ideas: 
+- Use formulas for matching in groups, e.g., to perform a gender-stratified matching
+	match(~ age + bmi | gender, ...)
+- Shiny frontend 
+
+-----
+
+The case where a certain (maximal) distance from between each case and control is also interesting.
+This would allow a researcher to focus on the cases for which good controls can be allocated.
+
+Exactly. Caliper Matching.
+
+We need QQ-plots ala those in the R Matching package, i.e., p-values before matching (normal t-test / linear regression) and
+after matching (is there a paired variant of regression?) 
+
+Look into LaLondes datasat and the MatchBalance function
+
+Propensity matching might be doable.
+
+----

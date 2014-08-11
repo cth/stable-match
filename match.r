@@ -280,6 +280,7 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 	max.distance = max(distances) 
 	mean.distance = mean(distances)
 	median.distance = median(distances)
+	sd.distance = sd(distances)
 
 	distances <- data.frame(distances)
 	
@@ -301,10 +302,11 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 		 test.metrics=list(
 				t.test=table.ttest,
 				wilcox=table.wilcox,
-				max.distance = max.distance,
+				longest.distance = max.distance,
 				mean.distance = mean.distance,
 				median.distance = median.distance,
-				elapsed.time = algorithm.time
+				sd.distance = sd.distance, 
+				elapsed.time = algorithm.time[3]
 		)
 	)
 }

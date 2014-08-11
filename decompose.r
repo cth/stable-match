@@ -13,6 +13,4 @@ decompose.formula <- function(formula,bindings=list(),lhs=T) {
 	}
 }
 
-
 b <- decompose.formula(~ bmi + age | factor) 
-
