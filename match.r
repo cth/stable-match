@@ -1,6 +1,6 @@
 library("lpSolve") 
 
-match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,distance.measure="mahalanobis",match.algorithm="gsa") {
+match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,distance.measure="mahalanobis",match.method="gsa") {
 	# Get columns of a dataframe by column names
 	subset_named_columns <- function(df,columns) {
 		column_index_vector <- as.vector(sapply(features,function(f) { which(colnames(df) == f) }))
@@ -68,10 +68,34 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 	}
 
 	############################################################
+	# Nearest neighbor matching (random order) 
+	############################################################
+	match.nn <- function(distance_matrix) {
+		taken <- c()
+		assignment <- list()
+
+		for(case in sample(1:ncol(distance_matrix))) {
+			min <- 1000000
+			select <- NA
+			for(control in 1:nrow(distance_matrix)) {
+				if (control %in% taken)
+					next
+				if (distance_matrix[control,case] < min) {
+					min <- distance_matrix[control,case]
+					assignment[[case]] <- control
+				}
+			}
+			taken <- c(taken,assignment[[case]])
+		}
+		assignment
+	}
+
+
+	############################################################
 	# Optimal matching (using lpSolve package) 
 	############################################################
 
-	match.lpsolve <- function(distance_matrix) {
+	match.opt <- function(distance_matrix) {
 		print("matching with lpsolve")
 		# FIXME: Make distance matrix quadratic with large cost padding..
 
@@ -203,12 +227,14 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 	}
 
 	algorithm.time <- system.time({
-		if (match.algorithm=="gsa") 
+		if (match.method=="gsa") 
 			matchings <- match.gsa(distance_matrix)
-		else if (match.algorithm=="lpsolve")
-			matchings <- match.lpsolve(distance_matrix)
+		else if (match.method=="opt")
+			matchings <- match.opt(distance_matrix)
+		else if (match.method=="nn")
+			matchings <- match.nn(distance_matrix)
 		else
-			stop(paste("Unknown match.algorithm:",match.algorithm))
+			stop(paste("Unknown match.method:",match.method))
 	})
 
 	case_control_matches <- data.frame(matrix(as.vector(matchings),nrow(cases),controls_per_case))
