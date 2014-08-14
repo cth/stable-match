@@ -1,5 +1,7 @@
 \documentclass{article}
 
+\usepackage{graphicx}
+
 \begin{document}
 
 
@@ -9,12 +11,22 @@ Matching is
 
 \section{Experiments}
 
-We perform a number of experiments to characterize the stable matching compared to the optimal matching and nearest neighbor matching.
+We perform a number of experiments to characterize the stable matching method compared to the optimal matching and nearest neighbor matching.
+
+In the experiments we generate a population and assign each member to be either case or control randomly so that we end up
+with the desired number of cases and number of controls. For each case/control we generate three independent normally distributed features.
+
+Matching is done on these features using Mahalanobis distance and metrics are reported in relation to Mahalanobis distance. 
+It is justified to use Mahalanobis distance instead of just eucledian distance, since the mean and variance of the generated may differ.
+The choice of distance metric, however, is not important for results in the following experiments. We are seeking to 
+describe characteristics of the matching methods, not the distance metric.
 
 \subsection{How often is stable equally good or better than xxx}
 
 Through a large number of simulations we apply the three types matchings to randomly generated data.
-[PROPERTIES OF THE RANDOMLY GENERATED DATA].
+In each simulation run we generate a fresh random population using the method described above. We 
+assign one fourth to cases (10 individuals) and three fourths (30 individuals) to be controls. 
+
 We measure how often stable matching is better than or equal to optimal matching on a range
 of measures as suggested by Rubin [[FIXME: find ref].
 For each simulation we record, 
@@ -25,9 +37,47 @@ For each simulation we record,
   \item The standard deviation of the distances between case and control. The standard deviation reflects the degree of imbalance of assigned controls.
 \end{itemize}
 
-The results are reported in a Venn diagram. 
+For each of these metrict, we show the results in a Venn diagram.
+
+\begin{figure}
+\caption{Mean distance ...}
+\includegraphics[scale=0.3]{../plots/venn_mean_distance.pdf}
+\end{figure}
+
+\begin{figure}
+\caption{Median distance ...}
+\includegraphics[scale=0.3]{../plots/venn_median_distance.pdf}
+\end{figure}
+
+\begin{figure}
+\caption{Distance standard deviation...}
+\includegraphics[scale=0.3]{../plots/venn_sd_distance.pdf}
+\end{figure}
+
+
+
+\subsection{Performance with limited choice of controls}
+
+Here, we investigate how each of the three methods perform when the freedom of choice of control is reduced. 
+In the extreme case there are $n$ controls which must be matched to $n$ cases.
+
+We consider a populations of $50$ controls, to which we try to match a variable number of cases $\{5, 10, \cdots, 45, 50\}$.
+For each number of cases, we apply the respectitive matching procedures on the same data. 
+For each number of cases, we run 10 simulations on independent random data. We apply each of the three matching methods
+on the ten datasets and report measures as an average of the ten runs. We report averages on mean distance, median distance 
+and distance standard deviation measurement in figure \ref{fig:variable.match.controls}. 
+
+\begin{figure}[htb]
+\label{fig:variable.match.controls}
+\includegraphics[scale=0.3]{../plots/mean_distance.pdf}
+\includegraphics[scale=0.3]{../plots/median_distance.pdf}
+\includegraphics[scale=0.3]{../plots/sd_distance.pdf}
+\includegraphics[scale=0.3]{../plots/longest_distance.pdf}
+\caption{Distance metrics for matching a variable number of cases to a small population of controls using the stable matching, nearest neighbor matching and optimal matching. }
+\end{figure}
+
+As would be expected the the optimal matching method has the lowest mean distance regardless of how many cases need to be matched. As the number of cases to be matched increases, the difference between in mean distance between the approaches become more pronounced. It seems, on average, stable matching outperforms nearest neighbor matching, but is second to optimal matching, which by definition is also guaranteed to yield the lowest possible mean distance. Stable matching, however, has lower median distance than both optimal matching and nearest neighbor matching. 
 
 \section{conclusion}
 
 \end{document}
-
