@@ -1,12 +1,14 @@
 # Experiments with GSA matching 
 
 source("match.r")
+library(VennDiagram)
+library(grid)
 
 sample.case.control.pop <- function(nfeatures,ncases,ncontrols) {
 	sample.pop <- data.frame(id=1:(ncases+ncontrols))
 
 	for(i in 1:nfeatures)
-		sample.pop[[i]] = sin(exp(rnorm(ncases + ncontrols)))
+		sample.pop[[i]] = rnorm(ncases + ncontrols)
 
 	list(
 		 cases = sample.pop[1:ncases,],
@@ -17,7 +19,7 @@ sample.case.control.pop <- function(nfeatures,ncases,ncontrols) {
 measurements <- c("longest.distance", "mean.distance","median.distance", "sd.distance")
 
 
-run.increasing.cmp <- function(num.experiments=5,num.features=2,control.population=50,num.cases.seq=seq(5,50,5)) { 
+run.increasing.cmp <- function(num.experiments=10,num.features=2,control.population=50,num.cases.seq=seq(5,50,5)) { 
 	runs <- list() 
 
 	for(i in 1:num.experiments) {
@@ -41,8 +43,8 @@ run.increasing.cmp <- function(num.experiments=5,num.features=2,control.populati
 	}
 
 	plot.measurement <- function(name, gsa, lp, nn, measure.points,ylab="") {
-		pdf(paste0("plots/", name,".pdf"))
-		plot(measure.points, gsa, ylim=range(gsa,lp,nn),col="blue",type="b",main=name, xlab="#cases",ylab=ylab) 
+		pdf(paste0("plots/", gsub("\\.", "_", name),".pdf"))
+		plot(measure.points, gsa, ylim=range(gsa,lp,nn),col="blue",type="b",main=gsub("\\.", " ", name), xlab="#cases",ylab=ylab) 
 		lines(measure.points,lp,col="red",t="b")
 		lines(measure.points,nn,col="green",t="b")
 		legend("topleft", c("gsa", "opt","nn"), col=c("blue", "red","green"), pch=21)
@@ -67,16 +69,24 @@ run.increasing.cmp <- function(num.experiments=5,num.features=2,control.populati
 		lp.means <- apply(lp,2,mean)
 		nn.means <- apply(nn,2,mean)
 		plot.measurement(m, gsa.means, lp.means, nn.means, results$measure.points)
-		matplot.measurement(m, gsa, lp, nn, results$measure.points)
+#		matplot.measurement(m, gsa, lp, nn, results$measure.points)
 	}
 }
 
-run.cmp.one <- function(num.experiments=20,num.cases=20,control.population=60,comparison.metric="mean") {
+run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,comparison.metric="mean") {
 	runs <- list() 
 
-	wins <- list()
+	venn.area <- list()
+
 	for(m in measurements) {
-		wins[[m]] <- 0
+		venn.area[[m]] <- list()
+		venn.area[[m]]$area1 <- 0
+		venn.area[[m]]$area2 <- 0
+		venn.area[[m]]$area3 <- 0
+		venn.area[[m]]$n12 <- 0
+		venn.area[[m]]$n23 <- 0
+		venn.area[[m]]$n13 <- 0
+		venn.area[[m]]$n123 <- 0
 	}
 
 	for(i in 1:num.experiments) {
@@ -94,22 +104,47 @@ run.cmp.one <- function(num.experiments=20,num.cases=20,control.population=60,co
 		}
 
 		for(m in measurements) {
-			print("----------------------------")
-			print(results[["gsa"]])
-			if (results[["gsa"]][[m]] < results[["opt"]][[m]]) {
-				print("gsa wins")
-				wins[[m]] <- wins[[m]] + 1
-			} else {
-				print("lpsolve wins")
+			min <- 1000
+			best <- c()
+			for (method in c("gsa", "opt", "nn")) {
+				if ( results[[method]][[m]] < min ) {
+					min <- results[[method]][[m]] 
+					best <- method
+				} else if( results[[method]][[m]] == min) {
+					best <- c(best,method)
+				}
 			}
-		}
-	} 
+
+			venn.area[[m]][["area1"]] <- venn.area[[m]][["area1"]] + sum("gsa" %in% best)
+			venn.area[[m]][["area2"]] <- venn.area[[m]][["area2"]] + sum("opt" %in% best)
+			venn.area[[m]][["area3"]] <- venn.area[[m]][["area3"]] + sum("nn" %in% best)
+			venn.area[[m]][["n12"]] <- venn.area[[m]][["n12"]] + sum("gsa" %in% best & "opt" %in% best)
+			venn.area[[m]][["n23"]] <- venn.area[[m]][["n23"]] + sum("opt" %in% best & "nn" %in% best)
+			venn.area[[m]][["n13"]] <- venn.area[[m]][["n13"]] + sum("gsa" %in% best & "nn" %in% best)
+			venn.area[[m]][["n123"]] <- venn.area[[m]][["n123"]] + sum("gsa" %in% best & "opt" %in% best & "nn" %in% best)
+
+			pdf(paste0("plots/","venn_",gsub("\\.","_",m),".pdf")) 
+			venn.plot <- draw.triple.venn(
+				area1 = venn.area[[m]][["area1"]],
+				area2 = venn.area[[m]][["area2"]],
+				area3 = venn.area[[m]][["area3"]],
+				n12 = venn.area[[m]][["n12"]],
+				n23 = venn.area[[m]][["n23"]],
+				n13 = venn.area[[m]][["n13"]],
+				n123 = venn.area[[m]][["n123"]],
+				category = c("gsa", "opt", "nn"),
+				#fill = c("blue", "red", "green"),
+				#cat.col = c("blue", "red", "green"),
+				scaled = T)
+			grid.draw(venn.plot)
+			dev.off()
+			grid.newpage()
+		} 
+	}
 
 	print("##################### Score: ############################")
-	print(wins)
+	print(venn.area)
 }
 
-#run.cmp.one()
-
-
+run.cmp.one(num.experiments=10)
 run.increasing.cmp()
