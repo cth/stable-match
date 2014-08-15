@@ -77,6 +77,12 @@ run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,c
 	runs <- list() 
 
 	venn.area <- list()
+	distances <- list()
+
+
+	for(algo in c("gsa", "opt", "nn")) {
+		distances[[algo]] <- c()	
+	}
 
 	for(m in measurements) {
 		venn.area[[m]] <- list()
@@ -99,6 +105,7 @@ run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,c
 		for(algo in c("gsa", "opt", "nn")) {
 			results[[algo]] <- list()
 			match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.method=algo)
+			distances[[algo]] <- c(distances[[algo]],match$distances$control1)
 			for(m in measurements) 
 				results[[algo]][[m]] <- match$test.metrics[[m]]
 		}
@@ -122,29 +129,44 @@ run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,c
 			venn.area[[m]][["n23"]] <- venn.area[[m]][["n23"]] + sum("opt" %in% best & "nn" %in% best)
 			venn.area[[m]][["n13"]] <- venn.area[[m]][["n13"]] + sum("gsa" %in% best & "nn" %in% best)
 			venn.area[[m]][["n123"]] <- venn.area[[m]][["n123"]] + sum("gsa" %in% best & "opt" %in% best & "nn" %in% best)
-
-			pdf(paste0("plots/","venn_",gsub("\\.","_",m),".pdf")) 
-			venn.plot <- draw.triple.venn(
-				area1 = venn.area[[m]][["area1"]],
-				area2 = venn.area[[m]][["area2"]],
-				area3 = venn.area[[m]][["area3"]],
-				n12 = venn.area[[m]][["n12"]],
-				n23 = venn.area[[m]][["n23"]],
-				n13 = venn.area[[m]][["n13"]],
-				n123 = venn.area[[m]][["n123"]],
-				category = c("gsa", "opt", "nn"),
-				#fill = c("blue", "red", "green"),
-				#cat.col = c("blue", "red", "green"),
-				scaled = T)
-			grid.draw(venn.plot)
-			dev.off()
-			grid.newpage()
 		} 
 	}
 
-	print("##################### Score: ############################")
-	print(venn.area)
+	pdf(paste0("plots/","venn_",gsub("\\.","_",m),".pdf")) 
+	venn.plot <- draw.triple.venn(
+		area1 = venn.area[[m]][["area1"]],
+		area2 = venn.area[[m]][["area2"]],
+		area3 = venn.area[[m]][["area3"]],
+		n12 = venn.area[[m]][["n12"]],
+		n23 = venn.area[[m]][["n23"]],
+		n13 = venn.area[[m]][["n13"]],
+		n123 = venn.area[[m]][["n123"]],
+		category = c("gsa", "opt", "nn"),
+		cex=2,
+		#fill = c("blue", "red", "green"),
+		#cat.col = c("blue", "red", "green"),
+		scaled = T)
+	grid.draw(venn.plot)
+	dev.off()
+	grid.newpage()
+
+	print("------------------------------------------------------")
+	print(distances)
+	pdf("plots/qqplot_gsa_opt.pdf")
+	plot(sort(distances[["gsa"]]),sort(distances[["opt"]]))
+	abline(0,1,col="red")
+	dev.off()
+
+	pdf("plots/qqplot_gsa_nn.pdf")
+	plot(sort(distances[["gsa"]]),sort(distances[["nn"]]))
+	abline(0,1,col="red")
+	dev.off()
+	
+	pdf("plots/qqplot_opt_nn.pdf")
+	plot(sort(distances[["opt"]]),sort(distances[["nn"]]))
+	abline(0,1,col="red")
+	dev.off()
 }
 
-run.cmp.one(num.experiments=10)
-run.increasing.cmp()
+run.cmp.one(num.experiments=100)
+#run.increasing.cmp()
