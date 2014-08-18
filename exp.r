@@ -73,7 +73,25 @@ run.increasing.cmp <- function(num.experiments=10,num.features=2,control.populat
 	}
 }
 
-run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,comparison.metric="mean") {
+# Assume X and Y are same length
+my.count.below <- function(x,y) {
+	score=list()
+	score$x = 0
+	score$y = 0
+	score$draw = 0
+	for(i in 1:length(x)) {
+		if (x[i] > x[y]) {
+			score$y <- score$y + 1	
+		} else if (y[i] > x[i]) {
+			score$x <- score$x + 1	
+		} else {
+			score$draw <- score$draw + 1	
+		}
+	}
+	score
+}
+
+run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=20,comparison.metric="mean",prefix="", caliper=NA) {
 	runs <- list() 
 
 	venn.area <- list()
@@ -104,7 +122,11 @@ run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,c
 		pop <- sample.case.control.pop(2,num.cases,control.population) 
 		for(algo in c("gsa", "opt", "nn")) {
 			results[[algo]] <- list()
-			match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.method=algo)
+#			if (is.na(caliper)) {
+#				match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.method=algo)
+#			} else {
+				match <- match.cc(pop$cases,pop$controls,pop$match.features,id.column=1,distance.measure="mahalanobis",match.method=algo,caliper=caliper)
+			#}
 			distances[[algo]] <- c(distances[[algo]],match$distances$control1)
 			for(m in measurements) 
 				results[[algo]][[m]] <- match$test.metrics[[m]]
@@ -132,41 +154,68 @@ run.cmp.one <- function(num.experiments=100,num.cases=10,control.population=30,c
 		} 
 	}
 
-	pdf(paste0("plots/","venn_",gsub("\\.","_",m),".pdf")) 
-	venn.plot <- draw.triple.venn(
-		area1 = venn.area[[m]][["area1"]],
-		area2 = venn.area[[m]][["area2"]],
-		area3 = venn.area[[m]][["area3"]],
-		n12 = venn.area[[m]][["n12"]],
-		n23 = venn.area[[m]][["n23"]],
-		n13 = venn.area[[m]][["n13"]],
-		n123 = venn.area[[m]][["n123"]],
-		category = c("gsa", "opt", "nn"),
-		cex=2,
-		#fill = c("blue", "red", "green"),
-		#cat.col = c("blue", "red", "green"),
-		scaled = T)
-	grid.draw(venn.plot)
-	dev.off()
-	grid.newpage()
+	for(m in measurements) {
+		pdf(paste0("plots/",prefix,"venn_",gsub("\\.","_",m),".pdf")) 
+		venn.plot <- draw.triple.venn(
+			area1 = venn.area[[m]][["area1"]],
+			area2 = venn.area[[m]][["area2"]],
+			area3 = venn.area[[m]][["area3"]],
+			n12 = venn.area[[m]][["n12"]],
+			n23 = venn.area[[m]][["n23"]],
+			n13 = venn.area[[m]][["n13"]],
+			n123 = venn.area[[m]][["n123"]],
+			category = c("gsa", "opt", "nn"),
+			cex=2,
+			#fill = c("blue", "red", "green"),
+			#cat.col = c("blue", "red", "green"),
+			scaled = T)
+		grid.draw(venn.plot)
+		dev.off()
+		grid.newpage()
+	}
 
 	print("------------------------------------------------------")
 	print(distances)
-	pdf("plots/qqplot_gsa_opt.pdf")
+	pdf(paste0("plots/",prefix,"qqplot_gsa_opt.pdf"))
 	plot(sort(distances[["gsa"]]),sort(distances[["opt"]]))
 	abline(0,1,col="red")
-	dev.off()
 
-	pdf("plots/qqplot_gsa_nn.pdf")
+
+	pdf(paste0("plots/",prefix,"qqplot_gsa_nn.pdf"))
 	plot(sort(distances[["gsa"]]),sort(distances[["nn"]]))
 	abline(0,1,col="red")
 	dev.off()
 	
-	pdf("plots/qqplot_opt_nn.pdf")
+	pdf(paste0("plots/", prefix, "qqplot_opt_nn.pdf"))
 	plot(sort(distances[["opt"]]),sort(distances[["nn"]]))
 	abline(0,1,col="red")
 	dev.off()
+
+	# Cumulative sum diagram
+	dist.diff <-  sort(distances[["gsa"]])-sort(distances[["opt"]])
+	pdf(paste0("plots/",prefix,"cumsum_gsa_opt.pdf"))
+	dist.diff <-  sort(distances[["gsa"]])-sort(distances[["opt"]])
+	plot(cumsum(dist.diff))
+	dev.off()
+
+	# Find the minimal cumsum / turning point and the
+	if (is.na(caliper)) {
+		turning.point.index <- which(cumsum(dist.diff)==min(cumsum(dist.diff))) 
+		larger.than.dists <-  sort(distances[["gsa"]])[seq(turning.point.index,length(distances[["gsa"]]))]
+
+		print(larger.than.dists)
+
+		min(larger.than.dists)
+	}
 }
 
-run.cmp.one(num.experiments=100)
+#caliper <- run.cmp.one(num.experiments=100,prefix="")
+run.cmp.one(num.experiments=100,prefix="caliper_", caliper=0.1)
+
 #run.increasing.cmp()
+
+
+# Caliper matching
+# - How to determine good caliper size?
+# - Calculate standard metrics.
+# - Number of matched cases 

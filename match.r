@@ -1,6 +1,6 @@
 library("lpSolve") 
 
-match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,distance.measure="mahalanobis",match.method="gsa") {
+match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,distance.measure="mahalanobis",match.method="gsa",caliper=NA) {
 	# Get columns of a dataframe by column names
 	subset_named_columns <- function(df,columns) {
 		column_index_vector <- as.vector(sapply(features,function(f) { which(colnames(df) == f) }))
@@ -112,7 +112,6 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 		}
 		print("done")
 
-#which(solution[,case] != 1) 
 		assignment
 	}
 
@@ -204,6 +203,20 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 		engagement_case
 	}
 
+	############################################################
+	# Caliper matching 
+	############################################################
+	match.caliper <- function(distance_matrix, assignment, caliper=10000) {
+		for(case in sample(1:ncol(distance_matrix))) {
+			for(control in 1:nrow(distance_matrix)) {
+				if (distance_matrix[case,assignment[[case]]] > caliper) {
+					assignment[[case]] <- NA
+				}
+			}
+		}
+		assignment
+	}
+
 	#########################################################
 	# Main 
 	#########################################################
@@ -236,6 +249,12 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 		else
 			stop(paste("Unknown match.method:",match.method))
 	})
+
+	# Subsequently do caliper matching
+	#if(!is.na(caliper)) {
+	#	matchings <- matchings
+		#matchings <- match.caliper(distance_matrix,matchings,caliper)
+	#}
 
 	case_control_matches <- data.frame(matrix(as.vector(matchings),nrow(cases),controls_per_case))
 	case_control_matches <- cbind(rownames(case_control_matches),case_control_matches) 
@@ -275,8 +294,8 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 		test
 	}
 
-	# Calculate test statistics for result
-	table.ttest <- test.metrics()
+# Calculate test statistics for result
+table.ttest <- test.metrics()
 	table.wilcox <- test.metrics()
 
 	for(ctrl in 1:controls_per_case) {
@@ -303,10 +322,11 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 			distances[i,j] <- distance_matrix[control,i]
 		}
 
-	max.distance = max(distances) 
-	mean.distance = mean(distances)
-	median.distance = median(distances)
-	sd.distance = sd(distances)
+	max.distance = max(distances,na.rm=T) 
+	mean.distance = mean(distances,na.rm=T)
+	median.distance = median(distances,na.rm=T)
+	sd.distance = sd(distances,na.rm=T)
+	unmatched = sum(is.na(distances))
 
 	distances <- data.frame(distances)
 	
@@ -332,7 +352,8 @@ match.cc <- function(cases,controls,features,id.column=NA,controls_per_case=1,di
 				mean.distance = mean.distance,
 				median.distance = median.distance,
 				sd.distance = sd.distance, 
-				elapsed.time = algorithm.time[3]
+				elapsed.time = algorithm.time[3],
+				unmatched = unmatched
 		)
 	)
 }
